@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Button, Center, HStack, Input, List, ListItem, Text, VStack } from "@chakra-ui/react";
 
-function ProductsTab({products, setProducts, setProductStockTotal, productStockTotal, ...rest}){
+function ProductsTab({products, setProducts, setProductStockTotal, productStockTotal, productStockDetail, setProductStockDetail, ...rest}){
   function addProduct(){
     var value = document.getElementById('addProductInput').value.trim().replace(/\s+/g, ' ');
     document.getElementById('addProductInput').value = '';
@@ -13,10 +13,12 @@ function ProductsTab({products, setProducts, setProductStockTotal, productStockT
 
     setProducts([...products, value]);
     setProductStockTotal((prev) => {return {...prev, [value]:0}})
+    setProductStockDetail((prev) => {return {...prev, [value]:[]}})
   }
   useEffect(() => {
     console.log("Updated Products:", products);
     console.log("Updated Product Stock Total:", productStockTotal);
+    console.log("Updated Product Stock Detail:", productStockDetail);
   }, [products]);
 
   return(
