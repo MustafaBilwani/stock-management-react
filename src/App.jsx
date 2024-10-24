@@ -15,8 +15,10 @@ import {
 } from "@chakra-ui/react";
 import ProductsTab from "./ProductsTab";
 import StockTab from "./StockTab";
+import HistoryTab from "./HistoryTab";
 
 function App() {
+  var index = 0;
 
   function coming(){
     var comingQty = document.getElementById('comingQty').value;
@@ -24,13 +26,14 @@ function App() {
     var comingNote = document.getElementById('comingNote').value;
     var comingProduct = document.getElementById('comingProduct').value;
     var comingDate = document.getElementById('comingDate').value;
+    index += 1;
     
     var isDecimal = comingQty != Math.trunc(comingQty);
-    if (comingProduct === '' || comingQty === '' || comingPrice === '') {
-        alert('Incomplete details'); return false; 
+    if (comingProduct === '' || comingQty === '' || comingPrice === '' || comingDate == '') {
+      alert('Incomplete details'); return false; 
     }
     if (isDecimal || comingPrice < 1 || comingQty < 1) {
-        alert('Incorrect details'); return false; 
+      alert('Incorrect details'); return false; 
     }
 
     
@@ -39,7 +42,18 @@ function App() {
       [comingProduct]: (parseInt(prevState[comingProduct]) + parseInt(comingQty))
     }));
 
-
+    setProductStockDetail(prev => ({
+      ...prev,
+      [comingProduct]:  [...prev[comingProduct], 
+        {
+          coming: parseInt(comingQty),
+          price: parseInt(comingPrice),
+          date: comingDate,
+          notes: comingNote,
+          id: index + 'coming',
+          initialQty: comingQty
+        }]
+    }))
   }
 
   function going(){
@@ -52,16 +66,16 @@ function App() {
     var isDecimal = goingQty != Math.trunc(goingQty);
     
     if (goingProduct === '' || goingQty === '') {
-        alert('Incomplete details'); 
-        return false;
+      alert('Incomplete details'); 
+      return false;
     }
     if (isDecimal || goingQty < 1) {
-        alert('Incorrect details'); 
-        return false;
+      alert('Incorrect details'); 
+      return false;
     }
     if (goingQty > productStockTotal[goingProduct]) {
-        alert('Not enough stock'); 
-        return false;
+      alert('Not enough stock'); 
+      return false;
     }
 
     setProductStockTotal(prevState => ({
@@ -73,6 +87,8 @@ function App() {
 
   const [products, setProducts] = React.useState([]);
   const [productStockTotal, setProductStockTotal] = React.useState({});
+  const [productStockDetail, setProductStockDetail] = React.useState({});
+  const [currentProductDetail, setCurrentProductDetail] = React.useState([]);
 
   const renderForm = (type, title, handleAction) => (
     <VStack
@@ -138,11 +154,11 @@ function App() {
           </TabPanel>
 
           <TabPanel>
-            
+            <HistoryTab setCurrentProductDetail={setCurrentProductDetail} currentProductDetail={currentProductDetail} products={products} setProducts={setProducts} productStockTotal={productStockTotal} setProductStockTotal={setProductStockTotal} productStockDetail={productStockDetail} setProductStockDetail={setProductStockDetail} />
           </TabPanel>
 
           <TabPanel>
-            <ProductsTab products={products} setProducts={setProducts} productStockTotal={productStockTotal} setProductStockTotal={setProductStockTotal} />
+            <ProductsTab products={products} setProducts={setProducts} productStockTotal={productStockTotal} setProductStockTotal={setProductStockTotal} productStockDetail={productStockDetail} setProductStockDetail={setProductStockDetail} />
           </TabPanel>
         </TabPanels>
       </Tabs>
