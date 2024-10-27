@@ -27,8 +27,8 @@ function StockTab({products, productStockTotal, ...rest}){
         <Tbody>
           {products.map((x, index) => (
             <Tr key={index} borderBottom="2px solid" borderColor="gray.200">
-              <Td fontWeight="medium">{x}</Td>
-              <Td>{productStockTotal[x]}</Td>
+              <Td fontWeight="medium">{x.name}</Td>
+              <Td>{productStockTotal[x.id]}</Td>
             </Tr>
           ))}
         </Tbody>
