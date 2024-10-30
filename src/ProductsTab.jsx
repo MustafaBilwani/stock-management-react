@@ -3,7 +3,7 @@ import { Box, Button, Center, Flex, FormControl, Heading, HStack, Input, List, L
 import { FiCheck, FiEdit2, FiTrash2, FiX } from "react-icons/fi";
 import { useRef } from "react";
 
-function ProductsTab({products, setProducts, setProductStockTotal, productStockTotal, productStockDetail, setProductStockDetail, ...rest}){
+function ProductsTab({products, setProducts, setProductStockTotal, currentProductDetail, setCurrentProductDetail, productStockTotal, productStockDetail, setProductStockDetail, ...rest}){
 
   const formRef = useRef(); // Reference for the form
 
@@ -35,7 +35,15 @@ function ProductsTab({products, setProducts, setProductStockTotal, productStockT
       }
     ]);
 
-    setProductStockTotal((prev) => {return {...prev, ['product'+proIndex]:0}}) // declare stock to 0
+    setProductStockTotal((prev) => {return {
+      ...prev,
+      ['product'+proIndex]:{
+          total: 0,
+          current: 0,
+          pendingPurchase: 0,
+          pendingSale: 0,
+        }
+    }}) // declare stock to 0
     setProductStockDetail((prev) => {return {...prev, ['product'+proIndex]:[]}}) // add an array to be used to store details
 
     setProIndex(prev => prev + 1);
@@ -44,7 +52,18 @@ function ProductsTab({products, setProducts, setProductStockTotal, productStockT
   function deleteProduct(id){
     const updatedProducts = products.filter((x, index) => x.id !== id);
     setProducts(updatedProducts);
+    delete productStockTotal[id]
+    delete productStockDetail[id]
+
+    if (currentProductDetail == id){
+      setCurrentProductDetail('')
+    }
   }
+
+  React.useEffect(() => {
+    console.log(productStockTotal)
+    console.log(productStockDetail)
+  }, [productStockTotal, productStockDetail])
 
   function editProduct(product){
     setEditingProduct(product)

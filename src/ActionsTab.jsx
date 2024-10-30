@@ -1,7 +1,8 @@
 import { Button, HStack, Input, Select, Text, VStack } from "@chakra-ui/react";
+import React from "react";
 
 function ActionsTab ({products, productStockDetail, productStockTotal, setCurrentProductDetail, currentProductDetail, setProductStockDetail, setProductStockTotal}){
-  var index = -1
+  const [index, setIndex] = React.useState(0)
 
   function coming(){
     var comingQty = document.getElementById('comingQty').value;
@@ -17,7 +18,6 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
       alert('Incorrect details'); return false; 
     }
     
-    index ++
     var newDetail = {
       coming: parseInt(comingQty),
       price: parseFloat(comingPrice),
@@ -28,12 +28,12 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
     }
     
     document.getElementById('comingForm').reset();
+    setIndex(prev => prev + 1);
 
     reRunDetails(comingProduct, newDetail); // pass newDetail to reRunDetails to sort and check stock according to date
   }
 
   function going(){
-    debugger;
     var goingQty = document.getElementById('goingQty').value;
     var goingPrice = document.getElementById('goingPrice').value;
     var goingNote = document.getElementById('goingNote').value;
@@ -50,7 +50,7 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
       return false;
     }
 
-    if (goingQty > productStockTotal[goingProduct]) {
+    if (goingQty > productStockTotal[goingProduct].total) {
       alert('Not enough stock'); 
       return false;
     }
@@ -75,12 +75,13 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
     var update = [...productStockDetail[product], newDetail].sort(function(a, b){return new Date(a.date) - new Date(b.date)})
     var purchasingAmountArray = []
     
-    var stock = 0
+    var stock = {total: 0, current: 0, pendingPurchase: 0, pendingSale: 0}
+    debugger
     
     for (let element of update) {
-      stock += element.coming > 0 ? element.coming : -element.going; // add quantity if detail is of coming and substract if detail is of going
+      stock.total += element.coming > 0 ? element.coming : -element.going; // add quantity if detail is of coming and substract if detail is of going
 
-      if (stock < 0){
+      if (stock.total < 0){
         alert('not enough stock at that time')
         return; // Stop processing if stock is insufficient at that time
       }
@@ -88,10 +89,27 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
       if (element.coming > 0){
         element.qty = element.coming; // element.qty should be restored to default in case qty is subtracted before
         purchasingAmountArray.push(element.id); // push id of detail to use for purchasing amount
+
+        var date = document.getElementById('stockSortingInput').value ? new Date(document.getElementById('stockSortingInput').value) : new Date() 
+        if (new Date(element.date) > date){
+          element.status = 'pending purchase'
+          stock.pendingPurchase += element.coming
+        } else {
+          element.status = 'received'
+          stock.current += element.coming
+        }
       } else {
         var remainingQty = element.going
         var totalPrice = 0
-        element.purchasingAmount = ''
+        element.purchasingAmount = []
+
+        if (new Date(element.date) > date){
+          element.status = 'pending sale'
+          stock.pendingSale += remainingQty
+        } else {
+          element.status = 'sold'
+          stock.current -= remainingQty
+        } 
         
         // run while loop to add purchasing amount if it is taking purchasing amount from more than 1 details
         while(remainingQty > 0){
@@ -99,9 +117,18 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
           let currDetail = update[currIndex]
           let currQty =  Math.min(currDetail.qty, remainingQty) // get least value for purchasing amount
 
-          element.purchasingAmount += `${currDetail.price} PKR for ${currQty} pieces <br/>`;
+          var purchasingAmountIndex = element.purchasingAmount.findIndex(x => x.price == currDetail.price)
+          if (purchasingAmountIndex == -1){
+            element.purchasingAmount.push({
+              qty: currQty,
+              price: currDetail.price
+            })
+          }else{
+            element.purchasingAmount[purchasingAmountIndex].qty += currQty
+          }
+          
           totalPrice += currQty * currDetail.price
-          element.profit = (totalPrice / element.going - element.price).toFixed(2)
+          element.profit = (  element.price - totalPrice / element.going ).toFixed(2)
 
           currDetail.qty -= currQty
           remainingQty -= currQty
@@ -122,7 +149,7 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
 
     setProductStockTotal(prevState => ({
       ...prevState,
-      [product]: stock
+      [product]: {...stock}
     }));
       
   };

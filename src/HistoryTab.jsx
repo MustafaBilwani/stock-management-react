@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 function HistoryTab({products, productStockDetail, productStockTotal, setCurrentProductDetail, currentProductDetail}){
   return(
     <>    
-      <Select onChange={(e) => {setCurrentProductDetail(e.target.value)}} defaultValue="" mb={3}>
+      <Select onChange={(e) => {setCurrentProductDetail(e.target.value)}} value={currentProductDetail} mb={1}>
         <option value='' disabled hidden>Select an option</option>
         {products.map((x, index) => {
           return(
@@ -17,58 +17,51 @@ function HistoryTab({products, productStockDetail, productStockTotal, setCurrent
       ): currentProductDetail == '' ?(
         <Center>Select Product to view Details</Center>
       ):(
-        <TableContainer
-          border="1px"
-          borderColor="gray.300"
-          borderRadius="md"
-          p={4}
-          shadow="sm"
-          bg="white"
-        >
-          <Table variant="simple" size="md">
-            <Thead>
-              <Tr>
-                <Th borderBottom="2px solid" borderColor="gray.300">
-                  Date
-                </Th>
-                <Th borderBottom="2px solid" borderColor="gray.300">
-                  Notes
-                </Th>
-                <Th borderBottom="2px solid" borderColor="gray.300">
-                  Coming
-                </Th>
-                <Th borderBottom="2px solid" borderColor="gray.300">
-                  Going
-                </Th>
-                <Th borderBottom="2px solid" borderColor="gray.300">
-                  Price
-                </Th>
-                <Th borderBottom="2px solid" borderColor="gray.300">
-                  Purchasing Amount
-                </Th>
-                <Th borderBottom="2px solid" borderColor="gray.300">
-                  Profit
-                </Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {productStockDetail[currentProductDetail].map((x, index) => (
-                <Tr key={index} borderBottom="2px solid" borderColor="gray.200">
-                  <Td fontWeight="medium">{x.date}</Td>
-                  <Td>{x.notes}</Td>
-                  <Td>
-                    <Text display={ x.coming > x.qty ? "inline" : 'none'} decoration={"line-through"}>{x.coming}</Text>
-                    {x.qty}
-                  </Td>
-                  <Td>{x.going}</Td>
-                  <Td>{x.price}</Td>
-                  <Td dangerouslySetInnerHTML={{ __html: x.purchasingAmount }} />
-                  <Td>{x.profit}</Td>
+        <>
+          <Center fontWeight={'bold'} fontSize={24} marginBottom={1.5} marginTop={0}> {products[products.findIndex(x => x.id == currentProductDetail)].name} </Center>
+          <TableContainer
+            border="1px"
+            borderColor="gray.300"
+            borderRadius="md"
+            p={4}
+            shadow="sm"
+          >
+            <Table variant="simple" size="md">
+              <Thead>
+                <Tr borderBottom="2px solid" borderColor="gray.300">
+                  <Th>Date</Th>
+                  <Th>Notes</Th>
+                  <Th>Coming</Th>
+                  <Th>Going</Th>
+                  <Th>Price</Th>
+                  <Th>Status</Th>
+                  <Th>Purchasing Amount</Th>
+                  <Th>Profit</Th>
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </TableContainer>
+              </Thead>
+              <Tbody>
+                {productStockDetail[currentProductDetail].map((x, index) => (
+                  <Tr key={index} borderBottom="2px solid" borderColor="gray.300">
+                    <Td fontWeight="medium">{x.date}</Td>
+                    <Td>{x.notes}</Td>
+                    <Td>
+                      <Text display={ x.coming > x.qty ? "inline" : 'none'} decoration={"line-through"}>{x.coming}</Text>
+                      <span> {x.qty}</span>
+                    </Td>
+                    <Td>{x.going}</Td>
+                    <Td>{x.price}</Td>
+                    <Td>{x.status}</Td>
+                    <Td>{x.purchasingAmount ? x.purchasingAmount.map(element => (
+                          <Text key={element.price}>{element.price} PKR for {element.qty} pieces</Text>
+                        )) : ''}
+                    </Td>
+                    <Td>{x.profit}</Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        </>
       )
       }
     </>
