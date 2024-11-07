@@ -1,29 +1,49 @@
-import React, { useEffect, useState } from "react";
-import { Box, Button, Center, Flex, FormControl, Heading, HStack, Input, List, ListItem, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Popover, Text, useDisclosure, useOutsideClick, VStack } from "@chakra-ui/react";
+import React, { useState } from "react";
+import { Box, Button, Center, Flex, FormControl, Heading, HStack, Input, List, ListItem, Text, useDisclosure, useOutsideClick, useToast } from "@chakra-ui/react";
 import { FiCheck, FiEdit2, FiTrash2, FiX } from "react-icons/fi";
 import { useRef } from "react";
+import CustomAlert from "./CustomAlert";
 
-function ProductsTab({products, setProducts, setProductStockTotal, currentProductDetail, setCurrentProductDetail, productStockTotal, productStockDetail, setProductStockDetail, ...rest}){
+function ProductsTab({products, setProducts, setProductStockTotal, currentProductDetail, setCurrentProductDetail, productStockTotal, productStockDetail, setProductStockDetail }){
+
+  const { 
+    isOpen: isDeleteAlertOpen, 
+    onOpen: onDeleteAlertOpen, 
+    onClose: onDeleteAlertClose 
+  } = useDisclosure();
+  const { 
+    isOpen: isBlurAlertOpen, 
+    onOpen: onBlurAlertOpen, 
+    onClose: onBlurAlertClose 
+  } = useDisclosure();
 
   const formRef = useRef(); // Reference for the form
+  const toast = useToast()
 
   // Use Chakra's `useOutsideClick` hook
   useOutsideClick({
     ref: formRef,
-    handler: () => {if (editingProduct.id) saveEdit(editingProduct)}, // Save when clicking outside the form
+    handler: () => {if (editingProduct.id) onBlurAlertOpen()}, // Save when clicking outside the form
   });
   
   const [proIndex, setProIndex] = React.useState(1)
   const [editingProduct, setEditingProduct] = React.useState({id: null})
   const [productName, setProductName] = useState("");
   const [editProductName, setEditProductName] = useState("");
+  const [productToDelete, setProductToDelete] = useState("");
    
   function addProduct(){
     const value = productName.trim().replace(/\s+/g, " "); // remove white spaces
     setProductName(""); // reset input field
     if (value == '') { return false; } // stop empty values
-    if (products.some((x) => x.name === value)) {
-      alert('Product already exists');
+    if (products.some((x) => x.name.toLowerCase() === value.toLowerCase())) {
+      toast({
+        title: 'Duplicate Name',
+        description: "This product already exist.",
+        status: 'error',
+        duration: 6000,
+        isClosable: true,
+      })
       return false;
     }
 
@@ -50,7 +70,7 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
   }
 
   function deleteProduct(id){
-    const updatedProducts = products.filter((x, index) => x.id !== id);
+    const updatedProducts = products.filter((x) => x.id !== id);
     setProducts(updatedProducts);
     delete productStockTotal[id]
     delete productStockDetail[id]
@@ -59,11 +79,6 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
       setCurrentProductDetail('')
     }
   }
-
-  React.useEffect(() => {
-    console.log(productStockTotal)
-    console.log(productStockDetail)
-  }, [productStockTotal, productStockDetail])
 
   function editProduct(product){
     setEditingProduct(product)
@@ -78,7 +93,13 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
     var newName = editProductName.trim().replace(/\s+/g, " "); // get editing products name
     if (newName == '') {
       setEditingProduct({id: null}); 
-      alert('Product Name cannot be empty');
+      toast({
+        title: 'Missing product name',
+        description: "Product name cannot be empty.",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      }) 
       return false;
     }
 
@@ -89,7 +110,13 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
     
     if (products.some((x) => x.name === newName)) {
       setEditingProduct({id: null}); 
-      alert('Product Name canot be same');
+      toast({
+        title: 'Duplicate Name',
+        description: "This product already exist.",
+        status: 'error',
+        duration: 6000,
+        isClosable: true,
+      })
       return false;
     }
 
@@ -102,13 +129,13 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
 
 
   return(
-    <Flex>
+    <>
       {/* Products Section */}
-      <Box width="50%" padding="4" boxShadow="md" ml={4}>
+      <Box width="100%" padding="4" boxShadow="md">
         <Heading size="lg" mb={4}>Products</Heading>
         
         <HStack spacing={2} mb={4}>
-          <Input value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Enter product name" />
+          <Input value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Enter product name" onKeyDown={(e) => {if (e.key === 'Enter') {addProduct()}}} />
           <Button colorScheme="green" onClick={() => { addProduct(); }}>Add Product</Button>
         </HStack>
         
@@ -121,8 +148,8 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
               <ListItem key={index} borderBottom="1px" p={1} display="flex" justifyContent="space-between" alignItems="center">
                 {editingProduct.id == x.id ? (
                   <>
-                    <FormControl ref={formRef} as="form" tabIndex={-1} display="flex" justifyContent="space-between" alignItems="center">
-                      <input id="editField" onChange={(e) => {setEditProductName(e.target.value)}} autoFocus defaultValue={x.name}/>
+                    <FormControl ref={formRef} as="form" display="flex" justifyContent="space-between" alignItems="center">
+                      <input id="editField" onChange={(e) => {setEditProductName(e.target.value)}} autoFocus defaultValue={x.name} onKeyDown={(e) => {if (e.key === 'Enter') {saveEdit()}}} />
                       <Flex>
                         <Button size="sm" variant="outline" colorScheme="gray" ml={2} onMouseDown={cancelEdit}><FiX /></Button>
                         <Button size="sm" variant="outline" colorScheme="gray" ml={2} onMouseDown={()=> {saveEdit()}}><FiCheck /></Button>
@@ -134,7 +161,7 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
                     {x.name}
                     <Flex>                  
                       <Button size="sm" variant="outline" colorScheme="blue" ml={2} onClick={() => {editProduct(x)}}><FiEdit2 /></Button>                 
-                      <Button size="sm" variant="outline" colorScheme="red" ml={2} onClick={() => {deleteProduct(x.id)}}><FiTrash2 /></Button>                  
+                      <Button size="sm" variant="outline" colorScheme="red" ml={2} onClick={() => {onDeleteAlertOpen(); setProductToDelete(x.id)}}><FiTrash2 /></Button>
                     </Flex>
                   </>
                 )}
@@ -145,29 +172,23 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
           )}
         </List>
       </Box>
-
-      {/* Warehouse Section */}
-      <Box width="50%" padding="4" boxShadow="md" ml={4}>
-        <Heading size="lg" mb={4}>Warehouse</Heading>
-        
-        <HStack spacing={2} mb={4}>
-          <Input placeholder="Enter warehouse name" />
-          <Button colorScheme="green">Add Warehouse</Button>
-        </HStack>
-        
-        <Text fontWeight="bold" fontSize="lg" mb={2}>Warehouse List</Text>
-        
-        <List spacing={2} border="1px" borderRadius="md" p={2}>
-          <ListItem borderBottom="1px" p={1} display="flex" justifyContent="space-between" alignItems="center">
-            Warehouse 1 
-            <Flex>
-              <Button size="sm" variant="outline" colorScheme="blue" ml={2}><FiEdit2 /></Button> 
-              <Button size="sm" variant="outline" colorScheme="red" ml={2}><FiTrash2 /></Button>
-            </Flex>
-          </ListItem>
-        </List>
-      </Box>
-    </Flex>
+      <CustomAlert 
+        isOpen={isDeleteAlertOpen}
+        onConfirm={() => {deleteProduct(productToDelete); onDeleteAlertClose()}}
+        onClose={onDeleteAlertClose}
+        type='confirmation'
+        alertHeading='Delete Product'
+        alertText="Are you sure? You can't undo this action afterwards."
+      />
+      <CustomAlert 
+        isOpen={isBlurAlertOpen}
+        onConfirm={() => {saveEdit(); onBlurAlertClose()}}
+        onClose={() => {onBlurAlertClose(); cancelEdit()}}
+        type='saveOrDiscard'
+        alertHeading='Change Product Name'
+        alertText="Do you want to change product name?"
+      />
+    </>
   )
 }
 

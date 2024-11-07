@@ -1,8 +1,9 @@
-import { Button, HStack, Input, Select, Text, VStack } from "@chakra-ui/react";
+import { Button, HStack, Input, Select, Text, useToast, VStack } from "@chakra-ui/react";
 import React from "react";
 
-function ActionsTab ({products, productStockDetail, productStockTotal, setCurrentProductDetail, currentProductDetail, setProductStockDetail, setProductStockTotal}){
-  const [index, setIndex] = React.useState(0)
+function ActionsTab ({products, productStockDetail, productStockTotal, reRunDetails}){
+  const [index, setIndex] = React.useState(1)
+  const toast = useToast()
 
   function coming(){
     var comingQty = document.getElementById('comingQty').value;
@@ -12,10 +13,24 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
     var comingDate = document.getElementById('comingDate').value;
     
     if (!comingProduct || !comingQty || !comingPrice || !comingDate) {
-      alert('Incomplete details'); return false; 
+      toast({
+        title: 'Incomplete details',
+        description: "Fill required fields.",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+      return false; 
     }
     if (comingQty < 1 || comingPrice < 1 || comingQty != Math.trunc(comingQty)) {
-      alert('Incorrect details'); return false; 
+      toast({
+        title: 'Incorrect details',
+        description: "Enter valid values.",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+      return false; 
     }
     
     var newDetail = {
@@ -24,13 +39,16 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
       date: comingDate,
       notes: comingNote,
       qty: comingQty,
-      id: index
+      id: index,
+      product: comingProduct
     }
+    
+    var update = [...productStockDetail[comingProduct], newDetail].sort(function(a, b){return new Date(a.date) - new Date(b.date)})
     
     document.getElementById('comingForm').reset();
     setIndex(prev => prev + 1);
 
-    reRunDetails(comingProduct, newDetail); // pass newDetail to reRunDetails to sort and check stock according to date
+    reRunDetails(comingProduct, update);
   }
 
   function going(){
@@ -41,17 +59,35 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
     var goingDate = document.getElementById('goingDate').value;
     
     if (!goingProduct || !goingPrice || !goingQty || !goingDate) {
-      alert('Incomplete details'); 
+      toast({
+        title: 'Incomplete details',
+        description: "Fill required fields.",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      }) 
       return false;
     }
 
     if (goingQty < 1 || goingPrice < 1 || goingQty != Math.trunc(goingQty)) {
-      alert('Incorrect details'); 
+      toast({
+        title: 'Incorrect details',
+        description: "Enter valid values.",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
       return false;
     }
 
     if (goingQty > productStockTotal[goingProduct].total) {
-      alert('Not enough stock'); 
+      toast({
+        title: 'Invalid Quantity',
+        description: "Not enough stock.",
+        status: 'error',
+        duration: 6000,
+        isClosable: true,
+      })
       return false;
     }
 
@@ -60,99 +96,27 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
       price: goingPrice,
       date: goingDate,
       notes: goingNote,
+      id: index,
+      product: goingProduct
     }
 
+    var update = [...productStockDetail[goingProduct], newDetail].sort(function(a, b){return new Date(a.date) - new Date(b.date)})
+    
     document.getElementById('goingForm').reset();
+    setIndex(prev => prev + 1);
 
-    reRunDetails(goingProduct, newDetail); // pass newDetail to reRunDetails to sort and check stock according to date
+    var result = reRunDetails(goingProduct, update);
 
-  }
-
-  function reRunDetails(product, newDetail){
-    
-    // pass Product Stock Detail and New Detail to variable to process it
-    // new variable to keep old value reserve 
-    var update = [...productStockDetail[product], newDetail].sort(function(a, b){return new Date(a.date) - new Date(b.date)})
-    var purchasingAmountArray = []
-    
-    var stock = {total: 0, current: 0, pendingPurchase: 0, pendingSale: 0}
-    debugger
-    
-    for (let element of update) {
-      stock.total += element.coming > 0 ? element.coming : -element.going; // add quantity if detail is of coming and substract if detail is of going
-
-      if (stock.total < 0){
-        alert('not enough stock at that time')
-        return; // Stop processing if stock is insufficient at that time
-      }
-
-      if (element.coming > 0){
-        element.qty = element.coming; // element.qty should be restored to default in case qty is subtracted before
-        purchasingAmountArray.push(element.id); // push id of detail to use for purchasing amount
-
-        var date = document.getElementById('stockSortingInput').value ? new Date(document.getElementById('stockSortingInput').value) : new Date() 
-        if (new Date(element.date) > date){
-          element.status = 'pending purchase'
-          stock.pendingPurchase += element.coming
-        } else {
-          element.status = 'received'
-          stock.current += element.coming
-        }
-      } else {
-        var remainingQty = element.going
-        var totalPrice = 0
-        element.purchasingAmount = []
-
-        if (new Date(element.date) > date){
-          element.status = 'pending sale'
-          stock.pendingSale += remainingQty
-        } else {
-          element.status = 'sold'
-          stock.current -= remainingQty
-        } 
-        
-        // run while loop to add purchasing amount if it is taking purchasing amount from more than 1 details
-        while(remainingQty > 0){
-          let currIndex = update.findIndex(x => x.id == purchasingAmountArray[0]) // find index in update array (stock detail array)
-          let currDetail = update[currIndex]
-          let currQty =  Math.min(currDetail.qty, remainingQty) // get least value for purchasing amount
-
-          var purchasingAmountIndex = element.purchasingAmount.findIndex(x => x.price == currDetail.price)
-          if (purchasingAmountIndex == -1){
-            element.purchasingAmount.push({
-              qty: currQty,
-              price: currDetail.price
-            })
-          }else{
-            element.purchasingAmount[purchasingAmountIndex].qty += currQty
-          }
-          
-          totalPrice += currQty * currDetail.price
-          element.profit = (  element.price - totalPrice / element.going ).toFixed(2)
-
-          currDetail.qty -= currQty
-          remainingQty -= currQty
-
-          if(currDetail.qty == 0){
-            purchasingAmountArray.shift() // delete id from purchasingAmountArray if its quantity is used
-          }
-        
-        }
-      }
+    if (result === false){
+      toast({
+        title: 'Incorrect details',
+        description: "Enter valid values.",
+        status: 'error',
+        duration: 6000,
+        isClosable: true,
+      })
     }
-
-    // update data if there was no error
-    setProductStockDetail(prev => ({
-      ...prev,
-      [product]: [...update]
-    }))
-
-    setProductStockTotal(prevState => ({
-      ...prevState,
-      [product]: {...stock}
-    }));
-      
-  };
+  } 
 
   const renderForm = (type, title, handleAction) => (
     <VStack
@@ -180,7 +144,7 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
         <option value='' disabled hidden>Select an option</option>
         {products.map((x, index) => {
           return(
-            <option value={x.id} >{x.name}</option> 
+            <option value={x.id} key={index} >{x.name}</option> 
           )
         })}
       </Select>
@@ -197,8 +161,7 @@ function ActionsTab ({products, productStockDetail, productStockTotal, setCurren
     </VStack>
   );
 
-  return(
-    
+  return(    
     <HStack spacing={10} justify="center">
       {renderForm("coming", "Coming", coming)}
       {renderForm("going", "Going", going)}
