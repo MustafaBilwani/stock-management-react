@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Button, Center, Flex, FormControl, Heading, HStack, Input, List, ListItem, Text, useDisclosure, useOutsideClick, useToast } from "@chakra-ui/react";
 import { FiCheck, FiEdit2, FiTrash2, FiX } from "react-icons/fi";
 import { useRef } from "react";
@@ -6,16 +6,7 @@ import CustomAlert from "./CustomAlert";
 
 function ProductsTab({products, setProducts, setProductStockTotal, currentProductDetail, setCurrentProductDetail, productStockTotal, productStockDetail, setProductStockDetail }){
 
-  const { 
-    isOpen: isDeleteAlertOpen, 
-    onOpen: onDeleteAlertOpen, 
-    onClose: onDeleteAlertClose 
-  } = useDisclosure();
-  const { 
-    isOpen: isBlurAlertOpen, 
-    onOpen: onBlurAlertOpen, 
-    onClose: onBlurAlertClose 
-  } = useDisclosure();
+  const { isOpen, onOpen, onClose, } = useDisclosure();
 
   const formRef = useRef(); // Reference for the form
   const toast = useToast()
@@ -23,14 +14,24 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
   // Use Chakra's `useOutsideClick` hook
   useOutsideClick({
     ref: formRef,
-    handler: () => {if (editingProduct.id) onBlurAlertOpen()}, // Save when clicking outside the form
+    handler: () => {if (editingProduct.id){
+      if (editProductName == editingProduct.name) {cancelEdit(); return false};
+      setProps({
+      onConfirm:() => {saveEdit(); onClose()},
+      onDiscard:() => {onClose(); cancelEdit()},
+      onClose: null,
+      type:'saveOrDiscard',
+      alertHeading:'Change Product Name',
+      alertText:"Do you want to change product name?",
+    }); onOpen()}} // Save when clicking outside the form
   });
-  
-  const [proIndex, setProIndex] = React.useState(1)
+
+  const [props, setProps] = useState({})
+
+  const [proIndex, setProIndex] = React.useState( JSON.parse(localStorage.getItem('proIndex')) || 1)
   const [editingProduct, setEditingProduct] = React.useState({id: null})
   const [productName, setProductName] = useState("");
   const [editProductName, setEditProductName] = useState("");
-  const [productToDelete, setProductToDelete] = useState("");
    
   function addProduct(){
     const value = productName.trim().replace(/\s+/g, " "); // remove white spaces
@@ -58,14 +59,17 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
     setProductStockTotal((prev) => {return {
       ...prev,
       ['product'+proIndex]:{
-          total: 0,
-          current: 0,
-          pendingPurchase: 0,
-          pendingSale: 0,
+          all: {
+            total: 0,
+            current: 0,
+            pendingPurchase: 0,
+            pendingSale: 0,
+          }
         }
     }}) // declare stock to 0
     setProductStockDetail((prev) => {return {...prev, ['product'+proIndex]:[]}}) // add an array to be used to store details
 
+    localStorage.setItem('proIndex', JSON.stringify(proIndex + 1));
     setProIndex(prev => prev + 1);
   }
 
@@ -80,7 +84,7 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
     }
   }
 
-  function editProduct(product){
+  function startEdit(product){
     setEditingProduct(product)
     setEditProductName(product.name)
   }
@@ -131,7 +135,7 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
   return(
     <>
       {/* Products Section */}
-      <Box width="100%" padding="4" boxShadow="md">
+      <Box width="50%" padding="4" boxShadow="md">
         <Heading size="lg" mb={4}>Products</Heading>
         
         <HStack spacing={2} mb={4}>
@@ -160,8 +164,22 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
                   <>
                     {x.name}
                     <Flex>                  
-                      <Button size="sm" variant="outline" colorScheme="blue" ml={2} onClick={() => {editProduct(x)}}><FiEdit2 /></Button>                 
-                      <Button size="sm" variant="outline" colorScheme="red" ml={2} onClick={() => {onDeleteAlertOpen(); setProductToDelete(x.id)}}><FiTrash2 /></Button>
+                      <Button size="sm" variant="outline" colorScheme="blue" ml={2} onClick={() => {startEdit(x)}}><FiEdit2 /></Button>                 
+                      <Button size="sm" variant="outline" colorScheme="red" ml={2} 
+                         onClick={() => {
+                          setProps({
+                            onConfirm: () => {
+                              deleteProduct(x.id);
+                              onClose();
+                            },
+                            onClose: onClose,
+                            type: "confirmation",
+                            alertHeading: "Delete Product",
+                            alertText: "Are you sure? You can't undo this action afterwards.",
+                          });
+                          onOpen()
+                        }}
+                      ><FiTrash2 /></Button>
                     </Flex>
                   </>
                 )}
@@ -172,21 +190,14 @@ function ProductsTab({products, setProducts, setProductStockTotal, currentProduc
           )}
         </List>
       </Box>
-      <CustomAlert 
-        isOpen={isDeleteAlertOpen}
-        onConfirm={() => {deleteProduct(productToDelete); onDeleteAlertClose()}}
-        onClose={onDeleteAlertClose}
-        type='confirmation'
-        alertHeading='Delete Product'
-        alertText="Are you sure? You can't undo this action afterwards."
-      />
-      <CustomAlert 
-        isOpen={isBlurAlertOpen}
-        onConfirm={() => {saveEdit(); onBlurAlertClose()}}
-        onClose={() => {onBlurAlertClose(); cancelEdit()}}
-        type='saveOrDiscard'
-        alertHeading='Change Product Name'
-        alertText="Do you want to change product name?"
+      <CustomAlert
+        isOpen={isOpen}
+        onConfirm={props.onConfirm}
+        onClose={props.onClose}
+        onDiscard={props.onDiscard}
+        type={props.type}
+        alertHeading={props.alertHeading}
+        alertText={props.alertText}
       />
     </>
   )

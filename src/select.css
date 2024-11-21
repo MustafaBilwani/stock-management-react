@@ -2,6 +2,8 @@
 
 /* Base variables with dark mode support */
 .custom-multiselect {
+  position: absolute;
+  top: 0px;
   --rmsc-main: #4f46e5;
   --rmsc-hover: #f5f5f5;
   --rmsc-selected: #e2e8f0;
@@ -20,16 +22,13 @@
   --rmsc-bg: #1a202c;
 }
 
-/* Override Chakra UI styles for dropdown visibility */
-div[role="cell"],
-td,
-th,
-tr,
-thead,
-tbody,
-table,
+
+th {
+  position: relative;
+}
+
 .chakra-table__container {
-  overflow: visible !important;
+  min-height: 70vh !important;
 }
 
 /* Base container styles */

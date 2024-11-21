@@ -1,7 +1,7 @@
 import { Alert, AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay, Button, useDisclosure } from "@chakra-ui/react";
 import React from "react";
 
-function CustomAlert({isOpen, onConfirm, onClose, alertHeading, alertText, type}){
+function CustomAlert({isOpen, onConfirm, onClose, alertHeading, alertText, type, onDiscard}){
   const cancelRef = React.useRef()
 
   return(
@@ -23,7 +23,7 @@ function CustomAlert({isOpen, onConfirm, onClose, alertHeading, alertText, type}
             <AlertDialogFooter>
                 {type === 'saveOrDiscard' ? (
                   <>
-                    <Button ref={cancelRef} onClick={onClose} colorScheme="red">
+                    <Button ref={cancelRef} onClick={onDiscard} colorScheme="red">
                       Discard
                     </Button>
                     <Button onClick={onConfirm} ml={3} colorScheme="blue">

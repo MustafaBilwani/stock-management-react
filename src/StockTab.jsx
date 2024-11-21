@@ -1,50 +1,33 @@
-import React from "react";
-import { Box, Center, Divider, Input, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from "@chakra-ui/react";
+import React, { useEffect, useState } from "react";
+import { Box, Center, Divider, Input, Select, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from "@chakra-ui/react";
+import stockSorting from "./stockSorting";
 
-function StockTab({products, productStockTotal, productStockDetail, setProductStockTotal }){
+function StockTab({products, productStockTotal, productStockDetail, setProductStockTotal, warehouses }){
 
-  function stockSorting(selectedDate){
-    var array = {}
-    
-    var date = selectedDate ? new Date(selectedDate) : new Date
-    products.forEach(product => {
+  const [selectedWarehouse, setSelectedWarehouse] = useState('all')
 
-      var stock = {
-        total: productStockTotal[product.id].total,
-        current: 0,
-        pendingSale: 0,
-        pendingPurchase: 0
-      }
-      productStockDetail[product.id].forEach(detail => {
-        const detailDate = new Date(detail.date);
-        
-        if (detail.coming > 0 && detailDate > date) {
-          stock.pendingPurchase += detail.coming;
-        } else if (detail.coming > 0) {
-          stock.current += detail.coming;
-        } else if (detail.going > 0 && detailDate > date) {
-          stock.pendingSale += detail.going;
-        } else if (detail.going > 0) {
-          stock.current -= detail.going;
-        }
-      })
-      array[product.id] = {...stock}
-    });
-    setProductStockTotal(array)
-  }
+  useEffect(() => {
+    stockSorting(products, productStockDetail, setProductStockTotal)
+  }, [])
   
   return(
     <>
-
-    {products.length > 0 ?(
+    {products.length > 0 ? (
       <>
-        <Box display={"flex"} justifyContent={"center"} gap={5}alignItems={'center'}>
-          <Text fontSize={20} ml={2}>Select Date to view stock at that Date</Text>
-          <Input type="date" mb={2} id="stockSortingInput" onChange={(e) => {stockSorting(e.target.value)}} width={'170px'}/>
+        <Box display={"flex"} justifyContent={"center"} gap={5} alignItems={'center'}>
+          <Text fontSize={30} ml={2}>Select Date to view stock at that Date</Text>
+          <Input type="date" id="stockSortingInput" onChange={() => {stockSorting(products, productStockDetail, setProductStockTotal)}} width={'170px'}/>
+          <Text fontSize={30} ml={5}>Warehouse:</Text>
+          <Select width={'170px'} value={selectedWarehouse} onChange={(e) => {setSelectedWarehouse(e.target.value)}}>
+            <option value="all">All Warehouses</option>
+            {warehouses.map((x, index) => {
+              return <option value={x.id} key={index}>{x.name}</option>
+            })}
+          </Select>
         </Box>
     
         {document.getElementById('stockSortingInput')?.value ? (
-          <Center fontSize={24} mb={2} >Viewing stock at {document.getElementById('stockSortingInput').value}</Center>
+          <Center fontSize={24} mb={2} mt={2} >Viewing stock at {document.getElementById('stockSortingInput').value}</Center>
         ) : ('')}
 
         <Divider my={4} borderColor="gray.400" />
@@ -80,10 +63,10 @@ function StockTab({products, productStockTotal, productStockDetail, setProductSt
               {products.map((x, index) => (
                 <Tr key={index} borderBottom="2px solid" borderColor="gray.200">
                   <Td fontWeight="medium">{x.name}</Td>
-                  <Td>{productStockTotal[x.id].total}</Td>
-                  <Td>{productStockTotal[x.id].current}</Td>
-                  <Td>{productStockTotal[x.id].pendingPurchase}</Td>
-                  <Td>{productStockTotal[x.id].pendingSale}</Td>
+                  <Td>{productStockTotal[x.id][selectedWarehouse]?.total || 0}</Td>
+                  <Td>{productStockTotal[x.id][selectedWarehouse]?.current || 0}</Td>
+                  <Td>{productStockTotal[x.id][selectedWarehouse]?.pendingPurchase || 0}</Td>
+                  <Td>{productStockTotal[x.id][selectedWarehouse]?.pendingSale || 0}</Td>
                 </Tr>
               ))}
             </Tbody>

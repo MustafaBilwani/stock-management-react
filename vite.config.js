@@ -5,4 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: '/stock-management-react/',
   plugins: [react()],
+  optimizeDeps: {
+    include: ['@mui/material', '@mui/x-date-pickers', '@emotion/react', '@emotion/styled'],
+  },
 });
